@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "better_routes_door_collector",
+  "version": "${version}",
+  "name": "Better Routes Door Collector",
+  "description": "Local-only collector for gathering dungeon room doorway evidence for Better Routes.",
+  "authors": ["Jesse"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": { "client": ["dev.jesse.doorcollector.DoorCollectorClient"] },
+  "depends": {
+    "fabricloader": ">=0.19.2",
+    "fabric-api": "*",
+    "minecraft": "26.1.2",
+    "java": ">=25"
+  }
+}
