@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class DoorStore {
+    private static final int ROOM_CELL_SIZE = 32;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private final Path file;
     private final Path exportFile;
@@ -40,30 +41,20 @@ public final class DoorStore {
         if (!Files.exists(file)) return;
         try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
             CollectedDoor[] loaded = GSON.fromJson(reader, CollectedDoor[].class);
-            if (loaded != null) doors.addAll(List.of(loaded));
+            if (loaded == null) return;
+            for (CollectedDoor door : loaded) {
+                if (door != null) consolidate(door);
+            }
+            if (doors.size() != loaded.length) save();
         }
     }
 
     public CollectedDoor record(String roomId, DoorObservation observation) throws Exception {
         long now = System.currentTimeMillis();
-        for (int i = 0; i < doors.size(); i++) {
-            CollectedDoor existing = doors.get(i);
-            if (!existing.roomId().equals(roomId) || existing.direction() != observation.direction()) continue;
-            double horizontal = switch (observation.direction()) {
-                case NORTH, SOUTH -> Math.abs(existing.x() - observation.position().x());
-                case EAST, WEST -> Math.abs(existing.z() - observation.position().z());
-            };
-            if (horizontal <= horizontalTolerance && Math.abs(existing.y() - observation.position().y()) <= verticalTolerance) {
-                CollectedDoor merged = existing.merge(observation, now);
-                doors.set(i, merged);
-                save();
-                return merged;
-            }
-        }
-        CollectedDoor created = CollectedDoor.first(roomId, observation, now);
-        doors.add(created);
+        CollectedDoor created = CollectedDoor.first(roomId.trim(), observation, now);
+        CollectedDoor result = consolidate(created);
         save();
-        return created;
+        return result;
     }
 
     public Path exportMetadata() throws Exception {
@@ -99,6 +90,47 @@ public final class DoorStore {
     public void clear() throws Exception { doors.clear(); save(); }
     public List<CollectedDoor> entries() { return List.copyOf(doors); }
     public Path file() { return file; }
+
+    private CollectedDoor consolidate(CollectedDoor candidate) {
+        int insertionIndex = doors.size();
+        boolean found;
+        do {
+            found = false;
+            for (int i = 0; i < doors.size(); i++) {
+                CollectedDoor existing = doors.get(i);
+                if (!sameDoor(existing, candidate)) continue;
+                insertionIndex = Math.min(insertionIndex, i);
+                candidate = existing.merge(candidate);
+                doors.remove(i);
+                found = true;
+                break;
+            }
+        } while (found);
+        doors.add(Math.min(insertionIndex, doors.size()), candidate);
+        return candidate;
+    }
+
+    private boolean sameDoor(CollectedDoor first, CollectedDoor second) {
+        if (!first.roomId().trim().equalsIgnoreCase(second.roomId().trim()) || first.direction() != second.direction()) {
+            return false;
+        }
+        double firstAlong = alongWall(first);
+        double secondAlong = alongWall(second);
+        if (wallSegment(firstAlong) == wallSegment(secondAlong)) return true;
+        return Math.abs(firstAlong - secondAlong) <= horizontalTolerance
+            && Math.abs(first.y() - second.y()) <= verticalTolerance;
+    }
+
+    private double alongWall(CollectedDoor door) {
+        return switch (door.direction()) {
+            case NORTH, SOUTH -> door.x();
+            case EAST, WEST -> door.z();
+        };
+    }
+
+    private long wallSegment(double alongWall) {
+        return Math.floorDiv(Math.round(alongWall), ROOM_CELL_SIZE);
+    }
 
     private void save() throws Exception {
         Files.createDirectories(file.getParent());

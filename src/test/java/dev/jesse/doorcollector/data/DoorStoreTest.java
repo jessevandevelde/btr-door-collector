@@ -23,13 +23,53 @@ class DoorStoreTest {
         DoorStore store = new DoorStore(temp);
         store.record("Temple", new DoorObservation(Direction.NORTH, new Int3(15,68,0), true));
         store.record("Temple", new DoorObservation(Direction.NORTH, new Int3(16,69,0), false));
-        store.record("Temple", new DoorObservation(Direction.NORTH, new Int3(25,68,0), true));
+        store.record("Temple", new DoorObservation(Direction.NORTH, new Int3(47,68,0), true));
 
         assertEquals(2, store.entries().size());
         CollectedDoor merged = store.entries().getFirst();
         assertEquals(2, merged.samples());
         assertEquals(1, merged.automaticSamples());
         assertEquals(15.5, merged.x());
+    }
+
+    @Test
+    void oneRoomWallSegmentCanOnlyProduceOneDoor() throws Exception {
+        DoorStore store = new DoorStore(temp);
+        store.record("Temple", new DoorObservation(Direction.NORTH, new Int3(4, 68, 0), true));
+        store.record(" temple ", new DoorObservation(Direction.NORTH, new Int3(27, 75, 0), false));
+        store.record("TEMPLE", new DoorObservation(Direction.NORTH, new Int3(16, 69, 0), true));
+
+        assertEquals(1, store.entries().size());
+        assertEquals(3, store.entries().getFirst().samples());
+        assertEquals(2, store.entries().getFirst().automaticSamples());
+    }
+
+    @Test
+    void separateWallSegmentsRemainSeparate() throws Exception {
+        DoorStore store = new DoorStore(temp);
+        store.record("Temple", new DoorObservation(Direction.NORTH, new Int3(15, 68, 0), true));
+        store.record("Temple", new DoorObservation(Direction.NORTH, new Int3(47, 68, 0), true));
+
+        assertEquals(2, store.entries().size());
+    }
+
+    @Test
+    void loadingCompactsHistoricalDuplicatesAndPreservesEvidence() throws Exception {
+        Files.writeString(temp.resolve("collected-doors.json"), """
+            [
+              {"roomId":"Temple","direction":"NORTH","x":4,"y":68,"z":0,"samples":2,"automaticSamples":2,"lastSeenEpochMs":10},
+              {"roomId":" temple ","direction":"NORTH","x":27,"y":75,"z":0,"samples":3,"automaticSamples":1,"lastSeenEpochMs":20}
+            ]
+            """, StandardCharsets.UTF_8);
+
+        DoorStore store = new DoorStore(temp);
+        store.load();
+
+        assertEquals(1, store.entries().size());
+        assertEquals(5, store.entries().getFirst().samples());
+        assertEquals(3, store.entries().getFirst().automaticSamples());
+        assertEquals(20, store.entries().getFirst().lastSeenEpochMs());
+        assertEquals(1, JsonParser.parseString(Files.readString(temp.resolve("collected-doors.json"))).getAsJsonArray().size());
     }
 
     @Test

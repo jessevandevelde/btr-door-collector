@@ -20,4 +20,14 @@ public record CollectedDoor(String roomId, Direction direction, double x, double
             (z * samples + p.z()) / nextSamples,
             nextSamples, automaticSamples + (observation.automatic() ? 1 : 0), now);
     }
+
+    public CollectedDoor merge(CollectedDoor other) {
+        int nextSamples = samples + other.samples;
+        return new CollectedDoor(roomId, direction,
+            (x * samples + other.x * other.samples) / nextSamples,
+            (y * samples + other.y * other.samples) / nextSamples,
+            (z * samples + other.z * other.samples) / nextSamples,
+            nextSamples, automaticSamples + other.automaticSamples,
+            Math.max(lastSeenEpochMs, other.lastSeenEpochMs));
+    }
 }

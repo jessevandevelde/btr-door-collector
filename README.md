@@ -68,7 +68,7 @@ config/better-routes-door-collector/
 └── exports/room-metadata.json
 ```
 
-Nearby observations for the same room and local wall are merged. Each candidate records total samples, automatic samples, and last-seen time. Exported door objects include the evidence counts as extra JSON fields; Better Routes ignores those extra fields when loading `possibleDoors`.
+Each room wall segment can contain only one collected doorway. Repeated observations, capitalization differences in room names, and duplicates from older data files are merged automatically while preserving their combined evidence counts. Separate 32-block wall segments remain separate doors. Each candidate records total samples, automatic samples, and last-seen time. Exported door objects include the evidence counts as extra JSON fields; Better Routes ignores those extra fields when loading `possibleDoors`.
 
 Review the export before merging it into Better Routes. Incorrect room names, rotation, dimensions, or physical north-west origin will produce incorrect local coordinates. Teleports longer than five blocks are ignored to reduce false crossings.
 
