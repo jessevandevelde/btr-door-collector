@@ -29,8 +29,16 @@ public final class CollectorCommands {
                     .then(ClientCommands.argument("length", IntegerArgumentType.integer(1, 6))
                         .executes(ctx -> reply(ctx, state.setSize(IntegerArgumentType.getInteger(ctx, "width"), IntegerArgumentType.getInteger(ctx, "length")))))))
             .then(ClientCommands.literal("origin").executes(ctx -> reply(ctx, state.setOrigin(Minecraft.getInstance()))))
+            .then(ClientCommands.literal("floor").executes(ctx -> reply(ctx, state.setFloor(Minecraft.getInstance()))))
             .then(ClientCommands.literal("originy").then(ClientCommands.argument("y", IntegerArgumentType.integer(-64, 320))
                 .executes(ctx -> reply(ctx, state.setOriginY(IntegerArgumentType.getInteger(ctx, "y"))))))
+            .then(ClientCommands.literal("shape")
+                .then(ClientCommands.literal("rectangle").executes(ctx -> reply(ctx, state.rectangleShape())))
+                .then(ClientCommands.literal("clear").executes(ctx -> reply(ctx, state.clearShape()))))
+            .then(ClientCommands.literal("cell")
+                .then(ClientCommands.literal("add").executes(ctx -> reply(ctx, state.changeCurrentCell(Minecraft.getInstance(), true))))
+                .then(ClientCommands.literal("remove").executes(ctx -> reply(ctx, state.changeCurrentCell(Minecraft.getInstance(), false)))))
+            .then(ClientCommands.literal("ready").executes(ctx -> reply(ctx, state.ready(Minecraft.getInstance()))))
             .then(ClientCommands.literal("mark").executes(ctx -> reply(ctx, state.mark(Minecraft.getInstance(), null)))
                 .then(ClientCommands.argument("direction", StringArgumentType.word()).executes(ctx -> {
                     try { return reply(ctx, state.mark(Minecraft.getInstance(), Direction.parse(StringArgumentType.getString(ctx, "direction")))); }
@@ -46,7 +54,7 @@ public final class CollectorCommands {
             .then(ClientCommands.literal("stop").executes(ctx -> reply(ctx, state.stop())))
             .then(ClientCommands.literal("clear").executes(ctx -> reply(ctx, state.clear())))
             .then(ClientCommands.literal("help").executes(ctx -> reply(ctx,
-                "begin <0|90|180|270> <room name>; size <w> <l>; origin; originy <y>; mark [direction]; auto; export; stop")))));
+                "begin <rotation> <room>; size <w> <l>; origin; floor; shape <rectangle|clear>; cell <add|remove>; ready; mark [direction]; export; stop")))));
     }
 
     private static int reply(CommandContext<FabricClientCommandSource> context, String message) {

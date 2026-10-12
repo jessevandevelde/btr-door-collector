@@ -16,7 +16,8 @@ public final class CollectorHud {
     private void render(GuiGraphicsExtractor graphics, DeltaTracker delta) {
         if (!ConfigManager.get().showHud || !state.active()) return;
         Minecraft client = Minecraft.getInstance();
-        graphics.text(client.font, "Door Collector: " + state.roomId(), 6, 6, 0xFF55FF55, true);
+        int color = state.collecting() ? 0xFF55FF55 : 0xFFFFFF55;
+        graphics.text(client.font, "Door Collector: " + state.roomId() + (state.collecting() ? " [RECORDING]" : " [SETUP]"), 6, 6, color, true);
         graphics.text(client.font, state.lastMessage(), 6, 17, 0xFFFFFFFF, true);
     }
 }

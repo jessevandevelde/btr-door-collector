@@ -116,15 +116,23 @@ public final class DoorStore {
         }
         double firstAlong = alongWall(first);
         double secondAlong = alongWall(second);
-        if (wallSegment(firstAlong) == wallSegment(secondAlong)) return true;
+        double planeDistance = Math.abs(wallPlane(first) - wallPlane(second));
+        if (wallSegment(firstAlong) == wallSegment(secondAlong) && planeDistance <= 1) return true;
         return Math.abs(firstAlong - secondAlong) <= horizontalTolerance
-            && Math.abs(first.y() - second.y()) <= verticalTolerance;
+            && planeDistance <= 1 && Math.abs(first.y() - second.y()) <= verticalTolerance;
     }
 
     private double alongWall(CollectedDoor door) {
         return switch (door.direction()) {
             case NORTH, SOUTH -> door.x();
             case EAST, WEST -> door.z();
+        };
+    }
+
+    private double wallPlane(CollectedDoor door) {
+        return switch (door.direction()) {
+            case NORTH, SOUTH -> door.z();
+            case EAST, WEST -> door.x();
         };
     }
 

@@ -5,7 +5,7 @@ public final class RoomGrid {
     private RoomGrid() {}
 
     public static int corner(double coordinate) {
-        int shifted = (int) (coordinate + 8.5);
+        int shifted = (int) Math.floor(coordinate + 8.5);
         return shifted - Math.floorMod(shifted, CELL) - 8;
     }
 }

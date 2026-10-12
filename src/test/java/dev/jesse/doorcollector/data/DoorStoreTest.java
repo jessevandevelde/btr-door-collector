@@ -54,6 +54,15 @@ class DoorStoreTest {
     }
 
     @Test
+    void parallelExposedWallsInIrregularRoomRemainSeparate() throws Exception {
+        DoorStore store = new DoorStore(temp);
+        store.record("Odd room", new DoorObservation(Direction.NORTH, new Int3(15, 0, 0), true));
+        store.record("Odd room", new DoorObservation(Direction.NORTH, new Int3(15, 0, 32), true));
+
+        assertEquals(2, store.entries().size());
+    }
+
+    @Test
     void loadingCompactsHistoricalDuplicatesAndPreservesEvidence() throws Exception {
         Files.writeString(temp.resolve("collected-doors.json"), """
             [

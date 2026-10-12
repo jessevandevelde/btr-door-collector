@@ -10,5 +10,7 @@ class RoomGridTest {
         assertEquals(24, RoomGrid.corner(30));
         assertEquals(-8, RoomGrid.corner(0));
         assertEquals(-40, RoomGrid.corner(-30));
+        assertEquals(-40, RoomGrid.corner(-8.6));
+        assertEquals(-8, RoomGrid.corner(-8.5));
     }
 }
