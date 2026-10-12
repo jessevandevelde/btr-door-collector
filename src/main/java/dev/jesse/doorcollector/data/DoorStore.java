@@ -2,6 +2,8 @@ package dev.jesse.doorcollector.data;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import dev.jesse.doorcollector.model.Direction;
 import dev.jesse.doorcollector.model.DoorObservation;
 
@@ -19,6 +21,8 @@ import java.util.Map;
 
 public final class DoorStore {
     private static final int ROOM_CELL_SIZE = 32;
+    private static final int SCHEMA_VERSION = 2;
+    private static final String COORDINATE_SPACE = "canonical-room-local";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private final Path file;
     private final Path exportFile;
@@ -39,14 +43,24 @@ public final class DoorStore {
     public void load() throws Exception {
         doors.clear();
         if (!Files.exists(file)) return;
+        JsonElement root;
         try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            CollectedDoor[] loaded = GSON.fromJson(reader, CollectedDoor[].class);
-            if (loaded == null) return;
-            for (CollectedDoor door : loaded) {
-                if (door != null) consolidate(door);
-            }
-            if (doors.size() != loaded.length) save();
+            root = JsonParser.parseReader(reader);
         }
+        if (root.isJsonArray()) {
+            quarantineLegacyFile();
+            save();
+            return;
+        }
+        StoreFile loaded = GSON.fromJson(root, StoreFile.class);
+        if (loaded == null || loaded.schemaVersion() != SCHEMA_VERSION
+            || !COORDINATE_SPACE.equals(loaded.coordinateSpace()) || loaded.doors() == null) {
+            throw new IllegalArgumentException("unsupported collected door data format");
+        }
+        for (CollectedDoor door : loaded.doors()) {
+            if (door != null) consolidate(door);
+        }
+        if (doors.size() != loaded.doors().size()) save();
     }
 
     public CollectedDoor record(String roomId, DoorObservation observation) throws Exception {
@@ -143,8 +157,20 @@ public final class DoorStore {
     private void save() throws Exception {
         Files.createDirectories(file.getParent());
         Path temporary = file.resolveSibling(file.getFileName() + ".tmp");
-        try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) { GSON.toJson(doors, writer); }
+        try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
+            GSON.toJson(new StoreFile(SCHEMA_VERSION, COORDINATE_SPACE, doors), writer);
+        }
         try { Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE); }
         catch (Exception ignored) { Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING); }
     }
+
+    private void quarantineLegacyFile() throws Exception {
+        Path backup = file.resolveSibling("collected-doors.legacy-world-coordinates.json");
+        if (Files.exists(backup)) {
+            backup = file.resolveSibling("collected-doors.legacy-world-coordinates-" + System.currentTimeMillis() + ".json");
+        }
+        Files.copy(file, backup);
+    }
+
+    private record StoreFile(int schemaVersion, String coordinateSpace, List<CollectedDoor> doors) {}
 }

@@ -90,6 +90,8 @@ config/better-routes-door-collector/
 └── exports/room-metadata.json
 ```
 
+The canonical local-coordinate format is schema version 2. When this version first sees an older array-format file containing world-height coordinates, it preserves that file as `collected-doors.legacy-world-coordinates.json` and starts a clean version-2 store. Incompatible world Y and local Y samples are never averaged together.
+
 Each exposed room-cell wall segment and wall plane can contain only one collected doorway. Repeated observations, capitalization differences in room names, and duplicates from older data files are merged automatically while preserving their combined evidence counts. Distinct walls in irregular rooms remain separate doors. Each candidate records total samples, automatic samples, and last-seen time. Exported door objects include the evidence counts as extra JSON fields; Better Routes ignores those extra fields when loading `possibleDoors`.
 
 Review the export before merging it into Better Routes. The standalone collector cannot identify a room or its canonical rotation without fingerprint data, so the supplied room name and rotation must still be correct. Incorrect dimensions, shape, physical north-west origin, or floor produce incorrect local coordinates. Teleports longer than five blocks are ignored to reduce false crossings.

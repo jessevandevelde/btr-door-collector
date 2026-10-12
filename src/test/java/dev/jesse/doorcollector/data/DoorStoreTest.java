@@ -65,10 +65,14 @@ class DoorStoreTest {
     @Test
     void loadingCompactsHistoricalDuplicatesAndPreservesEvidence() throws Exception {
         Files.writeString(temp.resolve("collected-doors.json"), """
-            [
-              {"roomId":"Temple","direction":"NORTH","x":4,"y":68,"z":0,"samples":2,"automaticSamples":2,"lastSeenEpochMs":10},
-              {"roomId":" temple ","direction":"NORTH","x":27,"y":75,"z":0,"samples":3,"automaticSamples":1,"lastSeenEpochMs":20}
-            ]
+            {
+              "schemaVersion": 2,
+              "coordinateSpace": "canonical-room-local",
+              "doors": [
+                {"roomId":"Temple","direction":"NORTH","x":4,"y":0,"z":0,"samples":2,"automaticSamples":2,"lastSeenEpochMs":10},
+                {"roomId":" temple ","direction":"NORTH","x":27,"y":7,"z":0,"samples":3,"automaticSamples":1,"lastSeenEpochMs":20}
+              ]
+            }
             """, StandardCharsets.UTF_8);
 
         DoorStore store = new DoorStore(temp);
@@ -78,7 +82,24 @@ class DoorStoreTest {
         assertEquals(5, store.entries().getFirst().samples());
         assertEquals(3, store.entries().getFirst().automaticSamples());
         assertEquals(20, store.entries().getFirst().lastSeenEpochMs());
-        assertEquals(1, JsonParser.parseString(Files.readString(temp.resolve("collected-doors.json"))).getAsJsonArray().size());
+        assertEquals(1, JsonParser.parseString(Files.readString(temp.resolve("collected-doors.json")))
+            .getAsJsonObject().getAsJsonArray("doors").size());
+    }
+
+    @Test
+    void legacyWorldCoordinateDataIsBackedUpInsteadOfMixed() throws Exception {
+        Files.writeString(temp.resolve("collected-doors.json"), """
+            [{"roomId":"Temple","direction":"NORTH","x":15,"y":68,"z":0,"samples":2,"automaticSamples":2,"lastSeenEpochMs":10}]
+            """, StandardCharsets.UTF_8);
+
+        DoorStore store = new DoorStore(temp);
+        store.load();
+
+        assertTrue(store.entries().isEmpty());
+        assertTrue(Files.exists(temp.resolve("collected-doors.legacy-world-coordinates.json")));
+        var current = JsonParser.parseString(Files.readString(temp.resolve("collected-doors.json"))).getAsJsonObject();
+        assertEquals(2, current.get("schemaVersion").getAsInt());
+        assertEquals(0, current.getAsJsonArray("doors").size());
     }
 
     @Test
